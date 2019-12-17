@@ -14,6 +14,58 @@ MyExcel，是一个集导入、导出、加密Excel等多项功能的工具包�
 
 优点 | Advantages
 -----------------
+
+注解--ExcelColumn-添加方法：
+
+    /**
+     * 字段是否导出 true导出，false不导出
+     *
+     * @return 文件类型
+     */
+    boolean isShow() default true;
+
+类--AbstractSimpleExcelBuilder中的修改
+````
+protected <T> List<Pair<? extends Class, ?>> getRenderContent(T data, List<Field> sortedFields) {
+
+        Iterator<Field> iterator = sortedFields.iterator();
+        while (iterator.hasNext()) {
+            Field field = iterator.next();
+            //根据注解中的isShow方法确定excel中是否导出
+            if (!field.getAnnotation(ExcelColumn.class).isShow()) {
+                iterator.remove();
+            }
+        }
+        LinkedList<Pair<? extends Class, ?>> collect = sortedFields.stream()
+                .map(field -> {
+                    Pair<? extends Class, Object> value = WriteConverterContext.convert(field, data);
+                    if (value.getValue() != null) {
+                        return value;
+                    }
+                    String defaultValue = defaultValueMap.get(field);
+                    if (defaultValue != null) {
+                        return Pair.of(field.getType(), defaultValue);
+                    }
+                    if (globalDefaultValue != null) {
+                        return Pair.of(field.getType(), globalDefaultValue);
+                    }
+                    return value;
+                })
+                .collect(Collectors.toCollection(LinkedList::new));
+
+        return collect;
+    }
+    
+    
+    protected List<Field> getFilteredFields(ClassFieldContainer classFieldContainer, Class<?>... groups) {
+       
+       //根据注解中的isShow方法确定excel中是否导出该字段的其他属性
+       if (!excelColumn.isShow()) {
+                      continue;
+       }
+    }
+````
+-----------------
 - **可生成任意复杂表格**：本工具使用迭代单元格方式进行excel绘制，可生成任意复杂度excel，自适应宽度、高度；
 - **零学习成本**：使用html作为模板，学习成本几乎为零；
 - **支持常用背景色、边框、字体等样式设置**：具体参见文档-样式支持部分；
